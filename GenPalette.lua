@@ -21,9 +21,12 @@ app.transaction(
         function()
             local status, err = pcall(function()
                 -- How much to shift blue/yellow relative to how far away the root hue is
-                local hueShiftVal = -.1
+                --local hueShiftVal = .1
+                local blueShiftVal = 10
                 local extremeLBuffer = .1
-                local nHues = 10
+                local nHues = 8
+                
+                --Figure out which hues to build ramps from
                 local ramps = {}
                 local nColors = 0
                 for i=1,nHues do
@@ -31,8 +34,8 @@ app.transaction(
                     ramps[i] = {(i-1) / nHues * 360.0, rampSize}
                     nColors = nColors+rampSize
                 end
-                app.alert(tostring(#ramps))
-                math.randomseed(os.time())
+                
+                --Build new palette
                 local pal = spr.palettes[1]
                 pal:resize(nColors)
                 local colorIndex = 0
@@ -40,14 +43,29 @@ app.transaction(
                     local rootHue = ramps[i][1]
                     local rampSize = ramps[i][2]
                     for j=1, rampSize do
-                        -- Here we change each color of the palette with random RGB
-                        -- values from 0-255 for each Red, Green, Blue component.
-                        local saturation = .4
+                        local hue = rootHue
+                        
+                        -- Hue interpolation method (disabled)
+                        t = math.cos(math.pi * (j-1)/(rampSize-1)) -- A sinusoidal interpolation between -1 and 1 for hue shifting
+                        --if t >= 0 then -- Shift towards yellow
+                        --    hue = hue + hueShiftVal * (60.0 - rootHue) * t
+                        --else -- shift towards blue
+                        --    hue = hue + hueShiftVal * (240.0 - rootHue) * -t
+                        --end
+                        --if hue < 0 then
+                        --   hue = 360 + hue
+                        --end
+                        
+                        
+                        
+                        local saturation = .25
                         local newLightness =  extremeLBuffer + (j-1) * (1-2.0*extremeLBuffer) / (rampSize-1);
-                        local newColor = Color{ hue=rootHue, saturation=0.4, lightness=newLightness, alpha=255}
+                        local newColor = Color{ hue=hue, saturation=0.4, lightness=newLightness, alpha=255}
                         newColor.lightness = newLightness
                         newColor.saturation = saturation
-                        --local newColor = Color{r=1.0, g=0.0, b=1.0}
+                        newColor.blue = newColor.blue + t * blueShiftVal
+                        newColor.green = newColor.green - t * blueShiftVal / 2.0
+                        newColor.red = newColor.red - t * blueShiftVal / 2.0
                         pal:setColor(colorIndex, newColor)
                         colorIndex = colorIndex + 1 
                     end
